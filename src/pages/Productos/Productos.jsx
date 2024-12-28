@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const AdminPanel = () => {
   const [selectedFunction, setSelectedFunction] = useState("stock");
@@ -64,27 +65,27 @@ const AdminPanel = () => {
 };
 
 const Stock = () => {
-  const [products, setProducts] = useState([
-    {
-      name: "Coca-Cola",
-      barcode: "123456789",
-      quantity: 50,
-      unitPrice: 10,
-      salePrice: 15,
-      expiryDate: "16/12/2024",
-    },
-    {
-      name: "Galletas Oreo",
-      barcode: "987654321",
-      quantity: 30,
-      unitPrice: 8,
-      salePrice: 12,
-      expiryDate: "20/01/2025",
-    },
-  ]);
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Hacer la petición para obtener los productos desde la API
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/products/");
+        setProducts(response.data); // Guardar los productos en el estado
+      } catch (err) {
+        setError("Hubo un error al obtener los productos.");
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const removeProduct = (barcode) => {
-    setProducts(products.filter((product) => product.barcode !== barcode));
+    setProducts(
+      products.filter((product) => product.codigo_barras !== barcode)
+    );
   };
 
   return (
@@ -92,6 +93,7 @@ const Stock = () => {
       <h1 className="text-2xl font-bold mb-4 text-orange-400">
         Stock de Productos
       </h1>
+      {error && <p className="text-red-500">{error}</p>}
       <table className="w-full bg-white text-black rounded-lg overflow-hidden">
         <thead className="bg-orange-400 text-white">
           <tr>
@@ -105,29 +107,37 @@ const Stock = () => {
           </tr>
         </thead>
         <tbody>
-          {products.map((product, index) => (
-            <tr
-              key={index}
-              className={`text-center ${
-                index % 2 === 0 ? "bg-orange-100" : "bg-orange-200"
-              }`}
-            >
-              <td className="p-2">{product.name}</td>
-              <td className="p-2">{product.barcode}</td>
-              <td className="p-2">{product.quantity}</td>
-              <td className="p-2">${product.unitPrice}</td>
-              <td className="p-2">${product.salePrice}</td>
-              <td className="p-2">{product.expiryDate}</td>
-              <td className="p-2">
-                <button
-                  onClick={() => removeProduct(product.barcode)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  X
-                </button>
+          {products.length > 0 ? (
+            products.map((product, index) => (
+              <tr
+                key={index}
+                className={`text-center ${
+                  index % 2 === 0 ? "bg-orange-100" : "bg-orange-200"
+                }`}
+              >
+                <td className="p-2">{product.nombre_producto}</td>
+                <td className="p-2">{product.codigo_barras}</td>
+                <td className="p-2">{product.cantidad}</td>
+                <td className="p-2">${product.precio_unitario}</td>
+                <td className="p-2">${product.precio_venta}</td>
+                <td className="p-2">{product.fecha_vencimiento}</td>
+                <td className="p-2">
+                  <button
+                    onClick={() => removeProduct(product.codigo_barras)}
+                    className="text-red-500 hover:text-red-700 font-bold"
+                  >
+                    X
+                  </button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="7" className="p-2 text-center">
+                No hay productos en el stock.
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>

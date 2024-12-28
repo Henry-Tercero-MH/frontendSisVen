@@ -19,12 +19,15 @@ const Register = () => {
 
     try {
       // Realiza la solicitud de registro al servidor
-      const response = await axios.post("http://localhost:5000/api/usuarios", {
-        nombre,
-        email,
-        password,
-        rol,
-      });
+      const response = await axios.post(
+        "http://localhost:3000/api/users/register",
+        {
+          nombre,
+          email,
+          password,
+          rol,
+        }
+      );
 
       setSuccess("Usuario registrado exitosamente.");
       setError(""); // Limpia el mensaje de error
