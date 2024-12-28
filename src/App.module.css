@@ -1,0 +1,8 @@
+.titulo {
+  text-align: center;
+  font-family: roboto;
+  font-size: 100px;
+  margin-top: 180px;
+  color: rgb(246, 241, 241);
+  border-bottom: 10px solid gray; /* Añade una línea de 5px de grosor debajo */
+}
