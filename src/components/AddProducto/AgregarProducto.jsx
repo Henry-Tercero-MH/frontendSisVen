@@ -58,7 +58,7 @@ const AgregarProductos = () => {
 
         // Hacer la solicitud POST al backend
         const response = await axios.post(
-          "http://localhost:3000/api/products/create",
+          `${import.meta.env.VITE_API_URL}/products/create`,
           datosParaServidor
         );
 

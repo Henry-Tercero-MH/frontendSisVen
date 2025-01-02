@@ -19,7 +19,9 @@ const Stock = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/products/");
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/products/`
+        );
         setProducts(response.data);
         setLoading(false);
       } catch (err) {
@@ -33,7 +35,7 @@ const Stock = () => {
 
   const removeProduct = async (barcode) => {
     try {
-      await axios.delete(`http://localhost:3000/api/products/${barcode}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/products/${barcode}`);
       setProducts(
         products.filter((product) => product.codigo_barras !== barcode)
       );
