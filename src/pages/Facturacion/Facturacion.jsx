@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import styles from "./Facturar.module.css"; // Importa el módulo CSS
 
 const Facturar = () => {
   const [search, setSearch] = useState(""); // Campo de búsqueda
@@ -43,20 +44,17 @@ const Facturar = () => {
   const change = cash ? (parseFloat(cash) - total).toFixed(2) : "0.00";
 
   const addToCart = (product) => {
-    // Verificar si el producto ya está en el carrito
-    const existingItem = cartItems.find((item) => item.name === product.name);
+    const existingItem = cartItems.find((item) => item.id === product.id);
     if (existingItem) {
-      // Si ya está, actualizar la cantidad
       setCartItems(
         cartItems.map((item) =>
-          item.name === product.name
+          item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
       );
     } else {
-      // Si no está, agregarlo al carrito en primer lugar
-      setCartItems([{ ...product, quantity: 1 }, ...cartItems]);
+      setCartItems([...cartItems, { ...product, quantity: 1 }]);
     }
   };
 
@@ -64,10 +62,10 @@ const Facturar = () => {
     setCartItems(cartItems.filter((item) => item.name !== productName));
   };
 
-  const updateQuantity = (productName, newQuantity) => {
+  const updateQuantity = (productId, newQuantity) => {
     setCartItems(
       cartItems.map((item) =>
-        item.name === productName
+        item.id === productId
           ? { ...item, quantity: Math.max(1, newQuantity) }
           : item
       )
@@ -75,17 +73,36 @@ const Facturar = () => {
   };
 
   const handlePayment = async () => {
+    if (!cartItems.length) {
+      setNotification("El carrito está vacío.");
+      return;
+    }
+
+    if (!cash || parseFloat(cash) < total) {
+      setNotification("El efectivo es insuficiente.");
+      return;
+    }
+
+    const detalles = cartItems.map((item) => ({
+      id_producto: parseInt(item.id),
+      cantidad: parseInt(item.quantity),
+      precio_unitario: parseFloat(item.price),
+      subtotal: parseFloat((item.quantity * item.price).toFixed(2)),
+    }));
+
     const invoiceData = {
-      cartItems,
-      total,
-      cash,
-      change,
+      id_usuario: 1, // Reemplaza con el ID real del usuario
+      detalles,
+      total: parseFloat(total.toFixed(2)),
+      efectivo: parseFloat(cash),
+      cambio: parseFloat(change),
     };
 
-    console.log("Datos a enviar al backend:", invoiceData);
-
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/facturas`, {
+      // Establecer el estado de la notificación a "Procesando..." antes de hacer la solicitud
+      setNotification("Procesando factura...");
+
+      const response = await fetch("http://localhost:3000/api/facturas", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,10 +110,16 @@ const Facturar = () => {
         body: JSON.stringify(invoiceData),
       });
 
+      if (!response.ok) {
+        throw new Error("Error al procesar la solicitud");
+      }
+
       const data = await response.json();
 
       if (data.success) {
         setNotification("Factura procesada con éxito.");
+        setCartItems([]); // Limpiar carrito
+        setCash(""); // Limpiar efectivo ingresado
       } else {
         setNotification("Error al procesar la factura.");
       }
@@ -106,11 +129,10 @@ const Facturar = () => {
     }
   };
 
-  // Filtrar productos por búsqueda y categoría seleccionada
   const filteredProducts = products.filter(
     (product) =>
       (product.nombre_producto.toLowerCase().includes(search.toLowerCase()) ||
-        product.codigo_barras.toLowerCase().includes(search.toLowerCase())) && // Búsqueda por nombre o código
+        product.codigo_barras.toLowerCase().includes(search.toLowerCase())) &&
       (selectedCategory
         ? product.categoria.toLowerCase() === selectedCategory.toLowerCase()
         : true)
@@ -119,51 +141,42 @@ const Facturar = () => {
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearch(value);
-    setIsSearchActive(value.trim() !== ""); // Activar búsqueda solo si hay texto
-
-    // Detectar si el valor ingresado es un código de barras
+    setIsSearchActive(value.trim() !== "");
     if (/^\d+$/.test(value)) {
-      // Si el valor es numérico (código de barras)
-      setIsBarcodeSearch(true); // Activar búsqueda por código de barras
+      setIsBarcodeSearch(true);
     } else {
-      setIsBarcodeSearch(false); // Si no es código de barras, desactivar
+      setIsBarcodeSearch(false);
     }
-
-    setSelectedCategory(""); // Limpiar la categoría seleccionada
+    setSelectedCategory("");
   };
 
-  // Agregar automáticamente 1 cantidad cuando se hace una búsqueda por código de barras
   useEffect(() => {
     if (isSearchActive && isBarcodeSearch && filteredProducts.length > 0) {
-      const product = filteredProducts[0]; // Solo agregamos el primero que coincida
-
-      // Limitar la ejecución del addToCart usando debounce
+      const product = filteredProducts[0];
       if (debounceTimer) clearTimeout(debounceTimer);
       setDebounceTimer(
         setTimeout(() => {
           addToCart({
+            id: product.id_producto,
             name: product.nombre_producto,
             price: parseFloat(product.precio_venta),
             category: product.categoria,
           });
-
-          // Limpiar el estado después de agregar el producto
-          setSearch(""); // Limpiar campo de búsqueda
-          setIsSearchActive(false); // Desactivar búsqueda
-          setIsBarcodeSearch(false); // Desactivar búsqueda por código de barras
-        }, 500) // Esperar 500 ms antes de agregar el producto
+          setSearch("");
+          setIsSearchActive(false);
+          setIsBarcodeSearch(false);
+        }, 500)
       );
     }
-  }, [isSearchActive, isBarcodeSearch, filteredProducts]); // Reaccionar a los cambios en la búsqueda y los productos filtrados
+  }, [isSearchActive, isBarcodeSearch, filteredProducts]);
 
   return (
     <div className="max-h-screen bg-black/50 text-white p-4">
-      {/* Barra de Búsqueda */}
-      <div className="flex items-center bg-gray-200 text-black p-2 rounded-md">
+      <div className="flex items-center bg-gray-200 text-black p-2 rounded-md w-full">
         <input
           type="text"
           value={search}
-          onChange={handleSearchChange} // Actualizar el valor de búsqueda
+          onChange={handleSearchChange}
           placeholder="Buscar producto por nombre o código de barras..."
           className="flex-grow bg-transparent outline-none px-2"
         />
@@ -172,7 +185,6 @@ const Facturar = () => {
         </button>
       </div>
 
-      {/* Categorías */}
       <div className="flex gap-2 overflow-x-auto border-b border-gray-600 mt-4">
         {categories.map((category, index) => (
           <button
@@ -182,8 +194,8 @@ const Facturar = () => {
             }`}
             onClick={() => {
               setSelectedCategory(category);
-              setSearch(""); // Limpiar búsqueda cuando se selecciona categoría
-              setIsSearchActive(false); // Desactivar búsqueda al seleccionar una categoría
+              setSearch("");
+              setIsSearchActive(false);
             }}
           >
             {category}
@@ -191,10 +203,8 @@ const Facturar = () => {
         ))}
       </div>
 
-      {/* Productos y Carrito */}
-      <div className="flex flex-col md:flex-row mt-4 gap-4">
-        {/* Lista de Productos */}
-        <div className="flex-1 bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-80">
+      <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-[600px] mx-auto">
+        <div className="bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-80 sm:w-2/4">
           {(isSearchActive || selectedCategory) && (
             <ul className="space-y-2">
               {filteredProducts.length > 0 ? (
@@ -204,13 +214,11 @@ const Facturar = () => {
                     className="flex justify-between items-center bg-gray-700 p-2 rounded-md hover:bg-gray-600"
                   >
                     <span>{product.nombre_producto}</span>
-                    <span>
-                      Q {parseFloat(product.precio_venta).toFixed(2)}
-                    </span>{" "}
-                    {/* Precio en Q */}
+                    <span>Q {parseFloat(product.precio_venta).toFixed(2)}</span>
                     <button
                       onClick={() =>
                         addToCart({
+                          id: product.id_producto,
                           name: product.nombre_producto,
                           price: parseFloat(product.precio_venta),
                           category: product.categoria,
@@ -229,87 +237,78 @@ const Facturar = () => {
           )}
         </div>
 
-        {/* Carrito */}
-        <div className="flex-1 bg-gray-800 p-4 rounded-lg flex flex-col">
+        <div className="bg-gray-800 p-4 rounded-lg sm:w-3/4">
           <h3 className="text-lg font-semibold">Carrito</h3>
-
-          {/* Lista de productos en el carrito con scroll */}
-          <div className="flex-1 overflow-y-auto max-h-40 mt-2">
+          <div className="overflow-y-auto max-h-40 mt-2">
             <ul className="space-y-2">
-              {cartItems.slice().map((item, index) => (
+              {cartItems.map((item, index) => (
                 <li
                   key={index}
                   className="flex justify-between items-center bg-gray-700 p-2 rounded-md hover:bg-gray-600"
                 >
                   <span>{item.name}</span>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.name, item.quantity - 1)
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      min="1"
+                      onChange={(e) =>
+                        updateQuantity(item.name, parseInt(e.target.value))
                       }
+                      className="w-12 bg-gray-800 text-white text-center rounded-md"
+                    />
+                    <span>
+                      Q {parseFloat(item.price * item.quantity).toFixed(2)}
+                    </span>
+                    <button
+                      onClick={() => removeFromCart(item.name)}
                       className="bg-red-600 text-white py-1 px-2 rounded-md"
                     >
-                      -
-                    </button>
-                    <span>{item.quantity}</span>
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.name, item.quantity + 1)
-                      }
-                      className="bg-blue-600 text-white py-1 px-2 rounded-md"
-                    >
-                      +
+                      Eliminar
                     </button>
                   </div>
-                  <button
-                    onClick={() => removeFromCart(item.name)}
-                    className="bg-gray-500 text-white py-1 px-2 rounded-md"
-                  >
-                    Eliminar
-                  </button>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Información de pago */}
           <div className="mt-4">
-            <div className="flex justify-between">
-              <span>Total:</span>
-              <span>Q {total.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Efectivo:</span>
+            <h4 className="text-md font-semibold">
+              Total: Q {parseFloat(total).toFixed(2)}
+            </h4>
+            <div className="flex items-center gap-2 mt-2">
+              <label htmlFor="cash" className="text-sm">
+                Efectivo:
+              </label>
               <input
+                id="cash"
                 type="number"
                 value={cash}
                 onChange={(e) => setCash(e.target.value)}
-                placeholder="Cantidad recibida"
-                className="bg-gray-700 p-1 rounded-md text-white"
+                placeholder="Efectivo recibido"
+                className="bg-gray-700 text-white py-1 px-2 rounded-md"
               />
             </div>
-            <div className="flex justify-between">
-              <span>Cambio:</span>
-              <span>Q {change}</span>
+            <div className="mt-2">
+              <h4 className="text-md font-semibold">
+                Cambio: Q {parseFloat(change).toFixed(2)}
+              </h4>
             </div>
+            <button
+              onClick={handlePayment}
+              disabled={total === 0 || parseFloat(change) < 0}
+              className="w-full bg-green-600 text-white py-2 rounded-md mt-4"
+            >
+              Procesar Factura
+            </button>
           </div>
-
-          {/* Botón de pago */}
-          <button
-            onClick={handlePayment}
-            className="bg-green-600 text-white py-2 mt-4 rounded-md"
-          >
-            Pagar
-          </button>
+          {notification && (
+            <div className="mt-4 bg-gray-900 p-2 text-green-400">
+              {notification}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Notificación */}
-      {notification && (
-        <div className="mt-4 p-2 bg-gray-700 text-center rounded-md">
-          {notification}
-        </div>
-      )}
     </div>
   );
 };

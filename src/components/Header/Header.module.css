@@ -1,16 +1,3 @@
-.cabecera {
-  top: 0px;
-  position: relative;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 50px;
-  padding: 10px;
-}
-.logo {
-  width: 250px;
-  height: 125px;
-}
 .boxHeader {
   background-color: rgba(13, 13, 13, 0.557);
   width: 100%;
@@ -21,4 +8,19 @@
   gap: 10px;
   padding: 20px;
   overflow: hidden;
+}
+
+.cabecera {
+  top: 0px;
+  position: relative;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  padding: 10px;
+}
+
+.logo {
+  width: 250px;
+  height: 125px;
 }
