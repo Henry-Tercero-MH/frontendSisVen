@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios"; // Importa axios
 import styles from "./Facturar.module.css"; // Importa el módulo CSS
 
 const Facturar = () => {
@@ -20,13 +21,12 @@ const Facturar = () => {
     "Pastas",
   ];
 
-  // Cargar los productos de la API
+  // Cargar los productos de la API usando axios
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/products");
-        const data = await response.json();
-        setProducts(data); // Actualizar el estado con los productos obtenidos
+        const response = await axios.get("http://localhost:3000/api/products");
+        setProducts(response.data); // Actualizar el estado con los productos obtenidos
       } catch (error) {
         console.error("Error al obtener los productos:", error);
       }
@@ -84,7 +84,7 @@ const Facturar = () => {
     }
 
     const detalles = cartItems.map((item) => ({
-      id_producto: parseInt(item.id),
+      id_producto: parseInt(item.id), // Verifica que el ID del producto esté definido
       cantidad: parseInt(item.quantity),
       precio_unitario: parseFloat(item.price),
       subtotal: parseFloat((item.quantity * item.price).toFixed(2)),
@@ -99,24 +99,17 @@ const Facturar = () => {
     };
 
     try {
-      // Establecer el estado de la notificación a "Procesando..." antes de hacer la solicitud
-      setNotification("Procesando factura...");
+      const response = await axios.post(
+        "http://localhost:3000/api/facturas",
+        invoiceData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      const response = await fetch("http://localhost:3000/api/facturas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(invoiceData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al procesar la solicitud");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         setNotification("Factura procesada con éxito.");
         setCartItems([]); // Limpiar carrito
         setCash(""); // Limpiar efectivo ingresado
