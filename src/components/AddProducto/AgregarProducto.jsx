@@ -104,6 +104,7 @@ const AgregarProductos = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { label: "Producto", name: "producto", type: "text" },
+              { label: "Descripcion", name: "descripcion", type: "text" },
               { label: "Código de Barras", name: "codigoBarras", type: "text" },
               { label: "Cantidad", name: "cantidad", type: "number" },
               {

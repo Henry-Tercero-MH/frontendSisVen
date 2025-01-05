@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios"; // Importa axios
-import styles from "./Facturar.module.css"; // Importa el módulo CSS
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import axios from "axios";
+import styles from "./Facturar.module.css";
 
 const Facturar = () => {
-  const [search, setSearch] = useState(""); // Campo de búsqueda
-  const [selectedCategory, setSelectedCategory] = useState(""); // Filtro de categoría
-  const [cartItems, setCartItems] = useState([]); // Carrito de compras
-  const [cash, setCash] = useState(""); // Efectivo dado por el cliente
-  const [notification, setNotification] = useState(""); // Notificaciones
-  const [products, setProducts] = useState([]); // Lista de productos
-  const [isSearchActive, setIsSearchActive] = useState(false); // Estado para saber si la búsqueda está activa
-  const [isBarcodeSearch, setIsBarcodeSearch] = useState(false); // Para determinar si es una búsqueda por código de barras
-  const [debounceTimer, setDebounceTimer] = useState(null); // Temporizador para debounce
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [cartItems, setCartItems] = useState([]);
+  const [cash, setCash] = useState("");
+  const [notification, setNotification] = useState("");
+  const [products, setProducts] = useState([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isBarcodeSearch, setIsBarcodeSearch] = useState(false);
+  const [debounceTimer, setDebounceTimer] = useState(null);
+  const cartRef = useRef(null); // Referencia al contenedor del carrito
 
   const categories = [
     "Bebidas",
@@ -21,12 +22,11 @@ const Facturar = () => {
     "Pastas",
   ];
 
-  // Cargar los productos de la API usando axios
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get("http://localhost:3000/api/products");
-        setProducts(response.data); // Actualizar el estado con los productos obtenidos
+        setProducts(response.data);
       } catch (error) {
         console.error("Error al obtener los productos:", error);
       }
@@ -39,27 +39,82 @@ const Facturar = () => {
     (sum, item) => sum + item.quantity * item.price,
     0
   );
-
-  // Calcular el cambio
   const change = cash ? (parseFloat(cash) - total).toFixed(2) : "0.00";
 
+  const handleNotification = (message) => {
+    setNotification(message);
+    setTimeout(() => setNotification(""), 3000);
+  };
+
   const addToCart = (product) => {
-    const existingItem = cartItems.find((item) => item.id === product.id);
+    const { id_producto, nombre_producto, precio_venta, categoria, cantidad } =
+      product;
+    const existingItem = cartItems.find((item) => item.id === id_producto);
+
+    if (cantidad <= 0) {
+      handleNotification("Ups, parece que este producto se agoto.");
+      return;
+    }
+
     if (existingItem) {
+      if (existingItem.quantity >= cantidad) {
+        handleNotification("Ups, parece que los productos son insuficientes.");
+        return;
+      }
       setCartItems(
         cartItems.map((item) =>
-          item.id === product.id
+          item.id === id_producto
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
       );
     } else {
-      setCartItems([...cartItems, { ...product, quantity: 1 }]);
+      setCartItems([
+        ...cartItems,
+        {
+          id: id_producto,
+          name: nombre_producto,
+          price: precio_venta,
+          category: categoria,
+          quantity: 1,
+        },
+      ]);
     }
+
+    const updatedProducts = [...products];
+    const productIndex = updatedProducts.findIndex(
+      (item) => item.id_producto === id_producto
+    );
+
+    if (productIndex !== -1 && updatedProducts[productIndex].cantidad > 0) {
+      updatedProducts[productIndex].cantidad -= 1;
+      setProducts(updatedProducts);
+    }
+
+    // Desplazar el scroll hacia el último elemento agregado
+    setTimeout(() => {
+      if (cartRef.current) {
+        cartRef.current.scrollTop = cartRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   const removeFromCart = (productName) => {
-    setCartItems(cartItems.filter((item) => item.name !== productName));
+    setCartItems((prevCartItems) => {
+      const updatedCartItems = prevCartItems.filter(
+        (item) => item.name !== productName
+      );
+
+      const updatedProducts = [...products];
+      const productIndex = updatedProducts.findIndex(
+        (item) => item.nombre_producto === productName
+      );
+      if (productIndex !== -1) {
+        updatedProducts[productIndex].cantidad += 1;
+        setProducts(updatedProducts);
+      }
+      return updatedCartItems;
+    });
   };
 
   const updateQuantity = (productId, newQuantity) => {
@@ -74,24 +129,24 @@ const Facturar = () => {
 
   const handlePayment = async () => {
     if (!cartItems.length) {
-      setNotification("El carrito está vacío.");
+      handleNotification("El carrito está vacío.");
       return;
     }
 
     if (!cash || parseFloat(cash) < total) {
-      setNotification("El efectivo es insuficiente.");
+      handleNotification("El efectivo es insuficiente.");
       return;
     }
 
     const detalles = cartItems.map((item) => ({
-      id_producto: parseInt(item.id), // Verifica que el ID del producto esté definido
+      id_producto: parseInt(item.id),
       cantidad: parseInt(item.quantity),
       precio_unitario: parseFloat(item.price),
       subtotal: parseFloat((item.quantity * item.price).toFixed(2)),
     }));
 
     const invoiceData = {
-      id_usuario: 1, // Reemplaza con el ID real del usuario
+      id_usuario: 1,
       detalles,
       total: parseFloat(total.toFixed(2)),
       efectivo: parseFloat(cash),
@@ -110,15 +165,15 @@ const Facturar = () => {
       );
 
       if (response.data.success) {
-        setNotification("Factura procesada con éxito.");
-        setCartItems([]); // Limpiar carrito
-        setCash(""); // Limpiar efectivo ingresado
+        handleNotification("Factura realizada con éxito.");
+        setCartItems([]);
+        setCash("");
       } else {
-        setNotification("Error al procesar la factura.");
+        handleNotification("Error al procesar la factura.");
       }
     } catch (error) {
       console.error("Error al hacer la solicitud:", error);
-      setNotification("Hubo un error al procesar la factura.");
+      handleNotification("Hubo un error al procesar la factura.");
     }
   };
 
@@ -131,37 +186,62 @@ const Facturar = () => {
         : true)
   );
 
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearch(value);
-    setIsSearchActive(value.trim() !== "");
-    if (/^\d+$/.test(value)) {
-      setIsBarcodeSearch(true);
-    } else {
+  const handleSearchChange = useCallback(
+    (e) => {
+      const value = e.target.value;
+      setSearch(value);
+      setIsSearchActive(value.trim() !== "");
+      setIsBarcodeSearch(/^\d+$/.test(value));
+      setSelectedCategory("");
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      setDebounceTimer(
+        setTimeout(() => {
+          setIsSearchActive(true);
+        }, 500)
+      );
+    },
+    [debounceTimer]
+  );
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === "Enter" && isBarcodeSearch && filteredProducts.length > 0) {
+      const product = filteredProducts[0];
+      addToCart({
+        id_producto: product.id_producto,
+        nombre_producto: product.nombre_producto,
+        precio_venta: parseFloat(product.precio_venta),
+        categoria: product.categoria,
+        cantidad: product.cantidad,
+      });
+      setSearch("");
+      setIsSearchActive(false);
       setIsBarcodeSearch(false);
     }
-    setSelectedCategory("");
   };
 
   useEffect(() => {
     if (isSearchActive && isBarcodeSearch && filteredProducts.length > 0) {
       const product = filteredProducts[0];
-      if (debounceTimer) clearTimeout(debounceTimer);
-      setDebounceTimer(
-        setTimeout(() => {
-          addToCart({
-            id: product.id_producto,
-            name: product.nombre_producto,
-            price: parseFloat(product.precio_venta),
-            category: product.categoria,
-          });
-          setSearch("");
-          setIsSearchActive(false);
-          setIsBarcodeSearch(false);
-        }, 500)
+      const existingItem = cartItems.find(
+        (item) => item.id === product.id_producto
       );
+
+      if (!existingItem) {
+        addToCart({
+          id_producto: product.id_producto,
+          nombre_producto: product.nombre_producto,
+          precio_venta: parseFloat(product.precio_venta),
+          categoria: product.categoria,
+          cantidad: product.cantidad,
+        });
+      }
+
+      setSearch("");
+      setIsSearchActive(false);
+      setIsBarcodeSearch(false);
     }
-  }, [isSearchActive, isBarcodeSearch, filteredProducts]);
+  }, [isSearchActive, isBarcodeSearch, filteredProducts, cartItems]);
 
   return (
     <div className="max-h-screen bg-black/50 text-white p-4">
@@ -170,6 +250,7 @@ const Facturar = () => {
           type="text"
           value={search}
           onChange={handleSearchChange}
+          onKeyPress={handleSearchKeyPress}
           placeholder="Buscar producto por nombre o código de barras..."
           className="flex-grow bg-transparent outline-none px-2"
         />
@@ -196,8 +277,8 @@ const Facturar = () => {
         ))}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-[600px] mx-auto">
-        <div className="bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-80 sm:w-2/4">
+      <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-[900px] mx-auto">
+        <div className="bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-80 sm:w-3/4">
           {(isSearchActive || selectedCategory) && (
             <ul className="space-y-2">
               {filteredProducts.length > 0 ? (
@@ -208,16 +289,23 @@ const Facturar = () => {
                   >
                     <span>{product.nombre_producto}</span>
                     <span>Q {parseFloat(product.precio_venta).toFixed(2)}</span>
+                    <span>Disp. {product.cantidad}</span>
                     <button
                       onClick={() =>
                         addToCart({
-                          id: product.id_producto,
-                          name: product.nombre_producto,
-                          price: parseFloat(product.precio_venta),
-                          category: product.categoria,
+                          id_producto: product.id_producto,
+                          nombre_producto: product.nombre_producto,
+                          precio_venta: parseFloat(product.precio_venta),
+                          categoria: product.categoria,
+                          cantidad: product.cantidad,
                         })
                       }
-                      className="bg-green-600 text-white py-1 px-2 rounded-md"
+                      disabled={product.cantidad === 0}
+                      className={`${
+                        product.cantidad === 0
+                          ? "bg-red-600 cursor-not-allowed"
+                          : "bg-green-600"
+                      } text-white py-1 px-2 rounded-md`}
                     >
                       Agregar
                     </button>
@@ -230,76 +318,83 @@ const Facturar = () => {
           )}
         </div>
 
-        <div className="bg-gray-800 p-4 rounded-lg sm:w-3/4">
-          <h3 className="text-lg font-semibold">Carrito</h3>
-          <div className="overflow-y-auto max-h-40 mt-2">
-            <ul className="space-y-2">
-              {cartItems.map((item, index) => (
+        <div
+          className="bg-gray-800 p-4 rounded-lg sm:w-3/4 mt-4 sm:mt-0"
+          ref={cartRef}
+          style={{ maxHeight: "300px", overflowY: "auto" }}
+        >
+          {notification && (
+            <div className="bg-blue-600 text-white p-2 rounded-md mb-4">
+              {notification}
+            </div>
+          )}
+
+          <ul className="space-y-2">
+            {cartItems.map((item) => {
+              const product = products.find((p) => p.id_producto === item.id);
+              const isInsufficient =
+                product && product.cantidad < item.quantity;
+              return (
                 <li
-                  key={index}
-                  className="flex justify-between items-center bg-gray-700 p-2 rounded-md hover:bg-gray-600"
+                  key={item.id}
+                  className={`flex justify-between items-center p-2 rounded-md hover:bg-gray-600 ${
+                    isInsufficient ? "bg-red-600" : "bg-gray-700"
+                  }`}
                 >
                   <span>{item.name}</span>
-                  <div className="flex items-center gap-2">
+                  <span>Q {item.price.toFixed(2)}</span>
+                  <div className="flex gap-2 items-center">
                     <input
                       type="number"
                       value={item.quantity}
                       min="1"
                       onChange={(e) =>
-                        updateQuantity(item.name, parseInt(e.target.value))
+                        updateQuantity(item.id, parseInt(e.target.value))
                       }
-                      className="w-12 bg-gray-800 text-white text-center rounded-md"
+                      className="w-16 text-center bg-gray-600 text-white rounded-md"
                     />
-                    <span>
-                      Q {parseFloat(item.price * item.quantity).toFixed(2)}
-                    </span>
                     <button
                       onClick={() => removeFromCart(item.name)}
-                      className="bg-red-600 text-white py-1 px-2 rounded-md"
+                      className="bg-red-600 text-white px-2 py-1 rounded-md"
                     >
                       Eliminar
                     </button>
                   </div>
                 </li>
-              ))}
-            </ul>
+              );
+            })}
+          </ul>
+
+          <div className="flex justify-between mt-4">
+            <span>Total:</span>
+            <span>Q {total.toFixed(2)}</span>
           </div>
 
           <div className="mt-4">
-            <h4 className="text-md font-semibold">
-              Total: Q {parseFloat(total).toFixed(2)}
-            </h4>
-            <div className="flex items-center gap-2 mt-2">
-              <label htmlFor="cash" className="text-sm">
-                Efectivo:
-              </label>
-              <input
-                id="cash"
-                type="number"
-                value={cash}
-                onChange={(e) => setCash(e.target.value)}
-                placeholder="Efectivo recibido"
-                className="bg-gray-700 text-white py-1 px-2 rounded-md"
-              />
-            </div>
-            <div className="mt-2">
-              <h4 className="text-md font-semibold">
-                Cambio: Q {parseFloat(change).toFixed(2)}
-              </h4>
-            </div>
-            <button
-              onClick={handlePayment}
-              disabled={total === 0 || parseFloat(change) < 0}
-              className="w-full bg-green-600 text-white py-2 rounded-md mt-4"
-            >
-              Procesar Factura
-            </button>
+            <label htmlFor="cash" className="block text-center mb-2">
+              Efectivo:
+            </label>
+            <input
+              type="number"
+              id="cash"
+              value={cash}
+              onChange={(e) => setCash(e.target.value)}
+              className="w-full text-center bg-gray-600 text-white p-2 rounded-md"
+              min="0"
+            />
           </div>
-          {notification && (
-            <div className="mt-4 bg-gray-900 p-2 text-green-400">
-              {notification}
-            </div>
-          )}
+
+          <div className="mt-4">
+            <span>Cambio:</span>
+            <span>Q {change}</span>
+          </div>
+
+          <button
+            onClick={handlePayment}
+            className="mt-4 bg-green-600 w-full text-white py-2 rounded-md"
+          >
+            Pagar
+          </button>
         </div>
       </div>
     </div>
