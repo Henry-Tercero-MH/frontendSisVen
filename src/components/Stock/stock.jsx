@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../AuthContext/AuthContext";
 
 const Stock = () => {
   const [products, setProducts] = useState([]);
@@ -15,6 +17,8 @@ const Stock = () => {
   });
   const [filter, setFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { setIsAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -89,6 +93,12 @@ const Stock = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setIsAuthenticated(false);
+    navigate("/login");
+  };
+
   const filteredProducts = products.filter(
     (product) =>
       product.categoria.toLowerCase().includes(filter.toLowerCase()) ||
@@ -116,9 +126,17 @@ const Stock = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4 text-orange-400">
-        Stock de Productos
-      </h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-orange-400">
+          Stock de Productos
+        </h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Salir
+        </button>
+      </div>
       {error && <p className="text-red-500">{error}</p>}
 
       <input

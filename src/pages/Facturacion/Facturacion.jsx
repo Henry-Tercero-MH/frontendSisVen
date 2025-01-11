@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useContext,
+} from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../components/AuthContext/AuthContext";
 import styles from "./Facturar.module.css";
 
 const Facturar = () => {
@@ -9,10 +17,15 @@ const Facturar = () => {
   const [cash, setCash] = useState("");
   const [notification, setNotification] = useState("");
   const [products, setProducts] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(""); // Valor inicial vacío
+  const [paymentType, setPaymentType] = useState("contado");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isBarcodeSearch, setIsBarcodeSearch] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState(null);
   const cartRef = useRef(null); // Referencia al contenedor del carrito
+  const { setIsAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const categories = [
     "Bebidas",
@@ -22,17 +35,27 @@ const Facturar = () => {
     "Pastas",
   ];
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get("http://localhost:3000/api/products");
-        setProducts(response.data);
-      } catch (error) {
-        console.error("Error al obtener los productos:", error);
-      }
-    };
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/api/products");
+      setProducts(response.data);
+    } catch (error) {
+      console.error("Error al obtener los productos:", error);
+    }
+  };
 
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/api/clientes");
+      setClients(response.data);
+    } catch (error) {
+      console.error("Error al obtener los clientes:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchProducts();
+    fetchClients();
   }, []);
 
   const total = cartItems.reduce(
@@ -133,7 +156,7 @@ const Facturar = () => {
       return;
     }
 
-    if (!cash || parseFloat(cash) < total) {
+    if (paymentType === "contado" && (!cash || parseFloat(cash) < total)) {
       handleNotification("El efectivo es insuficiente.");
       return;
     }
@@ -149,8 +172,10 @@ const Facturar = () => {
       id_usuario: 1,
       detalles,
       total: parseFloat(total.toFixed(2)),
-      efectivo: parseFloat(cash),
-      cambio: parseFloat(change),
+      efectivo: paymentType === "contado" ? parseFloat(cash) : 0,
+      cambio: paymentType === "contado" ? parseFloat(change) : 0,
+      tipo_pago: paymentType,
+      id_cliente: paymentType === "contado" ? 1 : parseInt(selectedClient),
     };
 
     try {
@@ -168,6 +193,8 @@ const Facturar = () => {
         handleNotification("Factura realizada con éxito.");
         setCartItems([]);
         setCash("");
+        setSelectedClient(""); // Valor inicial vacío
+        setPaymentType("contado");
       } else {
         handleNotification("Error al procesar la factura.");
       }
@@ -175,6 +202,12 @@ const Facturar = () => {
       console.error("Error al hacer la solicitud:", error);
       handleNotification("Hubo un error al procesar la factura.");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setIsAuthenticated(false);
+    navigate("/login");
   };
 
   const filteredProducts = products.filter(
@@ -245,17 +278,31 @@ const Facturar = () => {
 
   return (
     <div className="max-h-screen bg-black/50 text-white p-4">
-      <div className="flex items-center bg-gray-200 text-black p-2 rounded-md w-full">
-        <input
-          type="text"
-          value={search}
-          onChange={handleSearchChange}
-          onKeyPress={handleSearchKeyPress}
-          placeholder="Buscar producto por nombre o código de barras..."
-          className="flex-grow bg-transparent outline-none px-2"
-        />
-        <button className="text-gray-600" alt="buscar">
-          🔍
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center bg-gray-200 text-black p-2 rounded-md w-full">
+          <input
+            type="text"
+            value={search}
+            onChange={handleSearchChange}
+            onKeyPress={handleSearchKeyPress}
+            placeholder="Buscar producto por nombre o código de barras..."
+            className="flex-grow bg-transparent outline-none px-2"
+          />
+          <button className="text-gray-600" alt="buscar">
+            🔍
+          </button>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Salir
+        </button>
+        <button
+          onClick={fetchProducts}
+          className="bg-blue-500 text-white px-4 py-2 rounded ml-2"
+        >
+          Actualizar Productos
         </button>
       </div>
 
@@ -370,24 +417,69 @@ const Facturar = () => {
             <span>Q {total.toFixed(2)}</span>
           </div>
 
-          <div className="mt-4">
-            <label htmlFor="cash" className="block text-center mb-2">
-              Efectivo:
-            </label>
-            <input
-              type="number"
-              id="cash"
-              value={cash}
-              onChange={(e) => setCash(e.target.value)}
-              className="w-full text-center bg-gray-600 text-white p-2 rounded-md"
-              min="0"
-            />
-          </div>
+          {paymentType === "contado" && (
+            <div className="mt-4">
+              <label htmlFor="cash" className="block text-center mb-2">
+                Efectivo:
+              </label>
+              <input
+                type="number"
+                id="cash"
+                value={cash}
+                onChange={(e) => setCash(e.target.value)}
+                className="w-full text-center bg-gray-600 text-white p-2 rounded-md"
+                min="0"
+              />
+            </div>
+          )}
 
           <div className="mt-4">
             <span>Cambio:</span>
             <span>Q {change}</span>
           </div>
+
+          <div className="mt-4">
+            <label htmlFor="paymentType" className="block text-center mb-2">
+              Tipo de Pago:
+            </label>
+            <select
+              id="paymentType"
+              value={paymentType}
+              onChange={(e) => {
+                setPaymentType(e.target.value);
+                if (e.target.value === "contado") {
+                  setSelectedClient("1"); // ID del cliente C/F
+                }
+              }}
+              className="w-full text-center bg-gray-600 text-white p-2 rounded-md"
+            >
+              <option value="contado">Contado</option>
+              <option value="credito">Crédito</option>
+            </select>
+          </div>
+
+          {paymentType === "credito" && (
+            <div className="mt-4">
+              <label htmlFor="client" className="block text-center mb-2">
+                Cliente:
+              </label>
+              <select
+                id="client"
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className="w-full text-center bg-gray-600 text-white p-2 rounded-md"
+              >
+                <option value="">Elije un cliente</option>
+                {clients
+                  .filter((client) => client.nombre !== "Consumidor Final")
+                  .map((client) => (
+                    <option key={client.id_cliente} value={client.id_cliente}>
+                      {client.nombre}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           <button
             onClick={handlePayment}

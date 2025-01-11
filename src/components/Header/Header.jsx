@@ -14,10 +14,6 @@ const Header = () => {
           </div>
           <nav className={styles.cabecera}>
             <Link to="/">Home</Link>
-            <Link to="/login">Ir a Login</Link>
-            <Link to="/register">Registrarse</Link>
-            <Link to="/admin">ADMIN</Link>
-            <Link to="/facturar">Usuario</Link>
           </nav>
         </div>
       </header>

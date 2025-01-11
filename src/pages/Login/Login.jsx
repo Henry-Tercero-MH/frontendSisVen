@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../components/AuthContext/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { setIsAuthenticated } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,7 +27,16 @@ const Login = () => {
       if (response.ok) {
         console.log("Inicio de sesión exitoso", data);
         localStorage.setItem("authToken", data.token); // Guarda el token
-        navigate("/admin"); // Redirige al panel de administración
+        setIsAuthenticated(true); // Actualiza el estado de autenticación
+
+        // Redirige según el rol del usuario
+        if (data.rol === "admin") {
+          navigate("/admin");
+        } else if (data.rol === "empleado") {
+          navigate("/facturar");
+        } else {
+          console.error("Rol desconocido");
+        }
       } else {
         console.error("Error en el inicio de sesión", data.message);
       }

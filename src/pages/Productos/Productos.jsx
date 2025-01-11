@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Stock from "../../components/Stock/stock.jsx"; // Importamos el nuevo componente Stock
-import Usuarios from "../../components/Usuarios/usuarios.jsx"; // Si tienes otros componentes, asegúrate de importarlos
+import UserList from "../../components/UsuarioList/UserList.jsx"; // Importamos el componente UserList
+import Clientes from "../../pages/Clientes/Clientes.jsx"; // Importamos el nuevo componente Clientes
 
 // Componente de navegación
 const Navigation = ({ selectedFunction, handleFunctionChange }) => (
@@ -38,6 +39,16 @@ const Navigation = ({ selectedFunction, handleFunctionChange }) => (
     >
       Gestión de Usuarios
     </button>
+    <button
+      onClick={() => handleFunctionChange("clientes")}
+      className={`font-bold px-4 py-2 rounded-lg ${
+        selectedFunction === "clientes"
+          ? "bg-orange-700 text-white"
+          : "bg-orange-300 text-black hover:bg-orange-400"
+      }`}
+    >
+      Gestión de Clientes
+    </button>
   </nav>
 );
 
@@ -68,7 +79,8 @@ const AdminPanel = () => {
       {/* Contenido dinámico */}
       <div>
         {selectedFunction === "stock" && <Stock />}
-        {selectedFunction === "usuarios" && <Usuarios />}
+        {selectedFunction === "usuarios" && <UserList />}
+        {selectedFunction === "clientes" && <Clientes />}
         {/* Aquí puedes añadir más secciones según sea necesario */}
       </div>
     </div>
