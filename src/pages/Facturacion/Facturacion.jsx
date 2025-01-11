@@ -150,6 +150,16 @@ const Facturar = () => {
     );
   };
 
+  const updateClientCredit = async (clientId, newCredit) => {
+    try {
+      await axios.put(`http://localhost:3000/api/clientes/${clientId}`, {
+        credito: newCredit,
+      });
+    } catch (error) {
+      console.error("Error al actualizar el crédito del cliente:", error);
+    }
+  };
+
   const handlePayment = async () => {
     if (!cartItems.length) {
       handleNotification("El carrito está vacío.");
@@ -195,6 +205,16 @@ const Facturar = () => {
         setCash("");
         setSelectedClient(""); // Valor inicial vacío
         setPaymentType("contado");
+
+        if (paymentType === "credito") {
+          const client = clients.find(
+            (client) => client.id_cliente === parseInt(selectedClient)
+          );
+          if (client) {
+            const newCredit = client.credito - total;
+            updateClientCredit(client.id_cliente, newCredit);
+          }
+        }
       } else {
         handleNotification("Error al procesar la factura.");
       }
@@ -472,8 +492,11 @@ const Facturar = () => {
                 <option value="">Elije un cliente</option>
                 {clients
                   .filter((client) => client.nombre !== "Consumidor Final")
-                  .map((client) => (
-                    <option key={client.id_cliente} value={client.id_cliente}>
+                  .map((client, index) => (
+                    <option
+                      key={`${client.id_cliente}-${index}`}
+                      value={client.id_cliente}
+                    >
                       {client.nombre}
                     </option>
                   ))}
