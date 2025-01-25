@@ -64,7 +64,7 @@ const UsersList = () => {
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:3000/api/users/register", formData);
+      await axios.post( `${import.meta.env.VITE_API_URL}/users/register`, formData);
       setFormData({ nombre: "", email: "", password: "", rol: "empleado" });
       setShowRegisterModal(false);
       fetchUsers();

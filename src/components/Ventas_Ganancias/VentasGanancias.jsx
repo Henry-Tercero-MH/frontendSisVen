@@ -30,7 +30,9 @@ const VentasGanancias = () => {
       try {
         let url = "";
         if (periodo === "diario") {
-          url = `http://localhost:3000/api/ventas/totales/dia?fechaInicio=${fechaInicio}`;
+          url = `${
+            import.meta.env.VITE_API_URL
+          }/ventas/totales/dia?fechaInicio=${fechaInicio}`;
         } else if (periodo === "rango") {
           url = `http://localhost:3000/api/ventas/totales/rango?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
         }
@@ -56,7 +58,9 @@ const VentasGanancias = () => {
 
     const obtenerProductosMasVendidos = async () => {
       try {
-        const url = `http://localhost:3000/api/ventas/productos-mas-vendidos?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+        const url = `${
+          import.meta.env.VITE_API_URL
+        }/ventas/productos-mas-vendidos?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
         const response = await axios.get(url);
         setProductosMasVendidos(response.data);
       } catch (error) {

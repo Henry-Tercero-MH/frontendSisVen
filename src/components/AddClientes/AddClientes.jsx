@@ -22,7 +22,7 @@ const AddCliente = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/clientes",
+        `${import.meta.env.VITE_API_URL}/clientes`,
         formData
       );
       console.log(response.data);
