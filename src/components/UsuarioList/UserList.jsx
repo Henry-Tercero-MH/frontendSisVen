@@ -28,7 +28,7 @@ const UsersList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:3000/api/users/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/users/${id}`);
       fetchUsers();
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
@@ -51,7 +51,7 @@ const UsersList = () => {
     e.preventDefault();
     try {
       await axios.put(
-        `http://localhost:3000/api/users/${editingUser}`,
+        `${import.meta.env.VITE_API_URL}/users/${editingUser}`,
         formData
       );
       setEditingUser(null);
