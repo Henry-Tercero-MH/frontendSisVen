@@ -25,7 +25,7 @@ const Login = () => {
 
       const data = await response.json();
       if (response.ok) {
-        console.log("Inicio de sesión exitoso", data);
+        // console.log("Inicio de sesión exitoso", data);
         localStorage.setItem("authToken", data.token); // Guarda el token
         setIsAuthenticated(true); // Actualiza el estado de autenticación
 
@@ -35,10 +35,10 @@ const Login = () => {
         } else if (data.rol === "empleado") {
           navigate("/facturar");
         } else {
-          console.error("Rol desconocido");
+          // console.error("Rol desconocido");
         }
       } else {
-        console.error("Error en el inicio de sesión", data.message);
+        // console.error("Error en el inicio de sesión", data.message);
       }
     } catch (error) {
       console.error("Error de red", error);
@@ -87,10 +87,10 @@ const Login = () => {
           </button>
         </form>
         <p className="mt-4 text-sm text-gray-400 text-center">
-          ¿No tienes una cuenta?{" "}
+          {/* ¿No tienes una cuenta?{" "}
           <a href="/register" className="text-orange-400 hover:underline">
             Regístrate aquí
-          </a>
+          </a> */}
         </p>
       </div>
     </div>

@@ -8,7 +8,7 @@ import React, {
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../components/AuthContext/AuthContext";
-import styles from "./Facturar.module.css";
+// import styles from "./Facturar.module.css";
 
 const Facturar = () => {
   const [search, setSearch] = useState("");
@@ -37,7 +37,9 @@ const Facturar = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/products");
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/products`
+      );
       setProducts(response.data);
     } catch (error) {
       console.error("Error al obtener los productos:", error);
@@ -46,7 +48,9 @@ const Facturar = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/clientes");
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/clientes`
+      );
       setClients(response.data);
     } catch (error) {
       console.error("Error al obtener los clientes:", error);
@@ -152,7 +156,7 @@ const Facturar = () => {
 
   const updateClientCredit = async (clientId, newCredit) => {
     try {
-      await axios.put(`http://localhost:3000/api/clientes/${clientId}`, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/clientes/${clientId}`, {
         credito: newCredit,
       });
     } catch (error) {
@@ -190,7 +194,7 @@ const Facturar = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/facturas",
+        `${import.meta.env.VITE_API_URL}/facturas`,
         invoiceData,
         {
           headers: {
@@ -299,19 +303,6 @@ const Facturar = () => {
   return (
     <div className="max-h-screen bg-black/50 text-white p-4">
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center bg-gray-200 text-black p-2 rounded-md w-full">
-          <input
-            type="text"
-            value={search}
-            onChange={handleSearchChange}
-            onKeyPress={handleSearchKeyPress}
-            placeholder="Buscar producto por nombre o código de barras..."
-            className="flex-grow bg-transparent outline-none px-2"
-          />
-          <button className="text-gray-600" alt="buscar">
-            🔍
-          </button>
-        </div>
         <button
           onClick={handleLogout}
           className="bg-red-500 text-white px-4 py-2 rounded"
@@ -326,69 +317,87 @@ const Facturar = () => {
         </button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto border-b border-gray-600 mt-4">
-        {categories.map((category, index) => (
-          <button
-            key={index}
-            className={`px-4 py-2 text-sm whitespace-nowrap hover:bg-green-700 transition ${
-              selectedCategory === category ? "bg-green-500" : ""
-            }`}
-            onClick={() => {
-              setSelectedCategory(category);
-              setSearch("");
-              setIsSearchActive(false);
-            }}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
+      <div className="flex gap-4 mt-4 w-full sm:w-[1100px] mx-auto">
+        <div className="flex flex-col sm:w-2/3">
+          <div className="flex items-center bg-gray-200 text-black p-2 rounded-md mb-4">
+            <input
+              type="text"
+              value={search}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+              placeholder="Buscar producto por nombre o código de barras..."
+              className="flex-grow bg-transparent outline-none px-2"
+            />
+            <button className="text-gray-600" alt="buscar">
+              🔍
+            </button>
+          </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-[900px] mx-auto">
-        <div className="bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-80 sm:w-3/4">
-          {(isSearchActive || selectedCategory) && (
-            <ul className="space-y-2">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product, index) => (
-                  <li
-                    key={index}
-                    className="flex justify-between items-center bg-gray-700 p-2 rounded-md hover:bg-gray-600"
-                  >
-                    <span>{product.nombre_producto}</span>
-                    <span>Q {parseFloat(product.precio_venta).toFixed(2)}</span>
-                    <span>Disp. {product.cantidad}</span>
-                    <button
-                      onClick={() =>
-                        addToCart({
-                          id_producto: product.id_producto,
-                          nombre_producto: product.nombre_producto,
-                          precio_venta: parseFloat(product.precio_venta),
-                          categoria: product.categoria,
-                          cantidad: product.cantidad,
-                        })
-                      }
-                      disabled={product.cantidad === 0}
-                      className={`${
-                        product.cantidad === 0
-                          ? "bg-red-600 cursor-not-allowed"
-                          : "bg-green-600"
-                      } text-white py-1 px-2 rounded-md`}
+          <div className="flex gap-2 overflow-x-auto border-b border-gray-600 mb-4">
+            {categories.map((category, index) => (
+              <button
+                key={index}
+                className={`px-4 py-2 text-sm whitespace-nowrap hover:bg-green-700 transition ${
+                  selectedCategory === category ? "bg-green-500" : ""
+                }`}
+                onClick={() => {
+                  setSelectedCategory(category);
+                  setSearch("");
+                  setIsSearchActive(false);
+                }}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-80">
+            {(isSearchActive || selectedCategory) && (
+              <ul className="space-y-2">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map((product, index) => (
+                    <li
+                      key={index}
+                      className="flex justify-between items-center bg-gray-700 p-2 rounded-md hover:bg-gray-600"
                     >
-                      Agregar
-                    </button>
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500">No se encontraron productos</li>
-              )}
-            </ul>
-          )}
+                      <span>{product.nombre_producto}</span>
+                      <span>
+                        Q {parseFloat(product.precio_venta).toFixed(2)}
+                      </span>
+                      <span>Disp. {product.cantidad}</span>
+                      <button
+                        onClick={() =>
+                          addToCart({
+                            id_producto: product.id_producto,
+                            nombre_producto: product.nombre_producto,
+                            precio_venta: parseFloat(product.precio_venta),
+                            categoria: product.categoria,
+                            cantidad: product.cantidad,
+                          })
+                        }
+                        disabled={product.cantidad === 0}
+                        className={`${
+                          product.cantidad === 0
+                            ? "bg-red-600 cursor-not-allowed"
+                            : "bg-green-600"
+                        } text-white py-1 px-2 rounded-md`}
+                      >
+                        Agregar
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">No se encontraron productos</li>
+                )}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div
-          className="bg-gray-800 p-4 rounded-lg sm:w-3/4 mt-4 sm:mt-0"
+          className="bg-gray-800 p-4 rounded-lg sm:w-1/3"
           ref={cartRef}
-          style={{ maxHeight: "300px", overflowY: "auto" }}
+          style={{ maxHeight: "500px", overflowY: "auto" }} // Aumentar la altura máxima del carrito
         >
           {notification && (
             <div className="bg-blue-600 text-white p-2 rounded-md mb-4">

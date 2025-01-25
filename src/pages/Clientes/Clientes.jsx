@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import AddCliente from "../../components/AddClientes/AddClientes";
 import Modal from "../../components/Modal/Modal"; // Importa el componente Modal
 import ClientesList from "../../components/CientesList/ClientesList";
+import FacturaCliente from "../../components/FacturaCredito/FacturaCredito"; // Importa el componente FacturaCliente
 
 const Clientes = () => {
   const [selectedAction, setSelectedAction] = useState(null);
@@ -37,6 +38,12 @@ const Clientes = () => {
                 >
                   Agregar Cliente
                 </button>
+                <button
+                  onClick={() => handleActionChange("facturaCliente")}
+                  className="block w-full text-left px-4 py-2 text-black hover:bg-gray-200"
+                >
+                  Factura Cliente
+                </button>
               </div>
             )}
           </div>
@@ -49,6 +56,11 @@ const Clientes = () => {
           {selectedAction === "agregarCliente" && (
             <div>
               <AddCliente />
+            </div>
+          )}
+          {selectedAction === "facturaCliente" && (
+            <div>
+              <FacturaCliente />
             </div>
           )}
         </Modal>
