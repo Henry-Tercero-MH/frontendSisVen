@@ -19,7 +19,7 @@ const UsersList = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/users");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/users`);
       setUsers(response.data);
     } catch (error) {
       console.error("Error al obtener los usuarios:", error);
@@ -64,7 +64,10 @@ const UsersList = () => {
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
-      await axios.post( `${import.meta.env.VITE_API_URL}/users/register`, formData);
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/users/register`,
+        formData
+      );
       setFormData({ nombre: "", email: "", password: "", rol: "empleado" });
       setShowRegisterModal(false);
       fetchUsers();
