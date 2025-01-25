@@ -29,7 +29,7 @@ const ClientesList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:3000/api/clientes/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/clientes/${id}`);
       fetchClientes();
     } catch (error) {
       console.error("Error al eliminar el cliente:", error);
