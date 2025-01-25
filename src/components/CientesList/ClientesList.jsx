@@ -20,7 +20,9 @@ const ClientesList = () => {
 
   const fetchClientes = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/clientes");
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/clientes`
+      );
       setClientes(response.data);
     } catch (error) {
       console.error("Error al obtener los clientes:", error);
@@ -52,7 +54,7 @@ const ClientesList = () => {
     e.preventDefault();
     try {
       await axios.put(
-        `http://localhost:3000/api/clientes/${editingCliente}`,
+        `${import.meta.env.VITE_API_URL}/clientes/${editingCliente}`,
         formData
       );
       setEditingCliente(null);
