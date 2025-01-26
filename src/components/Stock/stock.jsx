@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../AuthContext/AuthContext";
+import gif from "../../../public/load.gif";
 
 const Stock = () => {
   const [products, setProducts] = useState([]);
@@ -75,7 +76,9 @@ const Stock = () => {
       };
 
       await axios.put(
-        `http://localhost:3000/api/products/${editingProduct.codigo_barras}`,
+        `${import.meta.env.VITE_API_URL}/products/${
+          editingProduct.codigo_barras
+        }`,
         updatedProduct
       );
 
@@ -122,7 +125,7 @@ const Stock = () => {
     return daysDifference <= 10; // Si el producto vence en 10 días o menos
   };
 
-  if (loading) return <p>Cargando productos...</p>;
+  if (loading) return <img src={gif} alt="loading" className="mx-auto mt-10" />;
 
   return (
     <div>
